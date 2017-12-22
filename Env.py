@@ -60,47 +60,6 @@ class QueryReofrmulatorEnv(Environment):
         # print("Loading queries and docs {}".format(time() - t0))
         self.reset()
 
-
-        '''for _, train_index in kf:
-            qi, qi_i, qi_lst, D_gt_id, D_gt_url = self.get_samples(qi, dt, vocab, train_index, self.search.engine, max_words_input=self.search.max_words_input)
-            # share the current queries with the search engine.
-            current_queries = qi_lst
-            i=3
-            print 'Input Query:       ', qi[i].replace('\n', '\\n')
-            print 'Target Docs: ', str(D_gt_url[i])
-            print 'Input Query Vocab: ', utils.idx2text(qi_i[i], vocabinv)
-            n_iterations = 2 # number of query reformulation iterations.
-            for n_iter in range(n_iterations):
-                print("current_queries", len(current_queries), current_queries)
-                if n_iter < self.search.q_0_fixed_until:
-                    ones = np.ones((len(current_queries), self.search.max_words_input))
-                    if n_iter > 0:
-                        # select everything from the original query in the first iteration.
-                        reformulated_query = np.concatenate([ones, ones], axis=1)
-                    else:
-                        reformulated_query = ones
-                print 'reformulated_query', reformulated_query.shape
-                #reformulated_query is our action!!!
-                metrics, D_i_, D_id_, D_gt_m_ = self.search.perform(reformulated_query, D_gt_id, self.is_train, current_queries)
-                print "D_id_", D_id_
-                print 'Iteration', n_iter
-                print '  '.join(self.search.metrics_map.keys())
-                print metrics.mean(0)
-                print
-                print 'Retrieved Docs:    ', str([self.search.engine.id_title_map[d_id] for d_id in D_id_[i]])
-                print
-                print 'Reformulated Query:', self.search.reformulated_queries[n_iter][i]
-                print
-                print 'Query ANS:         ',
-                for kk, word in enumerate(current_queries[i][:reformulated_query.shape[1]]):
-                    if word not in vocab and word != '':
-                        word += '<unk>'
-                    if reformulated_query[0, kk] == 1:
-                        word = word.upper()
-                    print str(word),
-                print
-                print'''
-
     def get_samples(self, input_queries, target_docs, vocab, index, engine, max_words_input=200):
         qi = [utils.clean(input_queries[t].lower()) for t in index]
         D_gt_title = [target_docs[t] for t in index]
@@ -145,10 +104,10 @@ class QueryReofrmulatorEnv(Environment):
         reward = metrics[metric_idx]
         if (len(actions) == 0):  # or self.counsteps > 10):
             done = True
-        # return [text, actions], reward, done, {}            # text: candidates return by search, actions: previous query. Combine provide the states
-        # return text, reward, done, {} 
         state = [utils.text2idx2(t, self.vocab, dim=self.search.max_words_input)[0] for t in text]
-        reward = 1.0
+        # reward = 1.0
+        metric_idx = self.search.metrics_map[self.reward.upper()]
+        reward = metrics[:,metric_idx].sum()
         return state, done, reward
 
     def reset(self):
@@ -164,7 +123,6 @@ class QueryReofrmulatorEnv(Environment):
         _, train_index = kf[0] #iterate if len(kf)>1 --> for _, train_index in kf:
         # print "kf", kf, len(self.qi)
         # print("Got minibatch index {}".format(time() - t0))
-
         qi, qi_i, qi_lst, D_gt_id, D_gt_url = self.get_samples(self.qi, self.dt, self.vocab, train_index, self.search.engine,
                                                                max_words_input=self.search.max_words_input)
 
@@ -180,10 +138,7 @@ class QueryReofrmulatorEnv(Environment):
                 # select everything from the original query in the first iteration.
                 reformulated_query = np.concatenate([ones, ones], axis=1)
 
-        # print 'reformulated_query', reformulated_query.shape
         actions = reformulated_query
-        # [text, actions], reward, done, found =  self.execute(actions)
-        # text, reward, done, found =  self.execute(actions)
         state, done, reward = self.execute(actions)
         return state
 
